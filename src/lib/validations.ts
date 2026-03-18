@@ -34,7 +34,18 @@ export const settingsSchema = z.object({
   name: z.string().max(100).optional(),
 });
 
+export const monthlyIncomeSchema = z.object({
+  amount: z.string().refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0;
+  }, "Amount must be a non-negative number"),
+  currency: z.string().min(1, "Currency is required"),
+  month: z.string().min(1, "Month is required"),
+  notes: z.string().max(500).optional(),
+});
+
 export type ExpenseFormData = z.infer<typeof expenseSchema>;
 export type RecurringExpenseFormData = z.infer<typeof recurringExpenseSchema>;
 export type CategoryFormData = z.infer<typeof categorySchema>;
 export type SettingsFormData = z.infer<typeof settingsSchema>;
+export type MonthlyIncomeFormData = z.infer<typeof monthlyIncomeSchema>;

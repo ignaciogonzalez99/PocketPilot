@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { updateSettings } from "@/lib/actions";
-import { CURRENCIES } from "@/lib/constants";
+import { updateSettings, upsertExchangeRate, deleteExchangeRate } from "@/lib/actions";
+import { CURRENCIES, getCurrencySymbol } from "@/lib/constants";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,22 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { getSettingsData } from "./settings-actions";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Trash2 } from "lucide-react";
+
+interface RateRow {
+  fromCurrency: string;
+  toCurrency: string;
+  rate: string;
+}
 
 export function SettingsContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [defaultCurrency, setDefaultCurrency] = useState("USD");
+  const [rates, setRates] = useState<RateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingRate, setSavingRate] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -34,6 +42,7 @@ export function SettingsContent() {
       setName(data.name);
       setEmail(data.email);
       setDefaultCurrency(data.defaultCurrency);
+      setRates(data.exchangeRates);
     } finally {
       setLoading(false);
     }
@@ -46,10 +55,7 @@ export function SettingsContent() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const result = await updateSettings({
-        defaultCurrency,
-        name: name || undefined,
-      });
+      const result = await updateSettings({ defaultCurrency, name: name || undefined });
       if (result.success) {
         toast.success("Settings saved");
       } else {
@@ -59,6 +65,45 @@ export function SettingsContent() {
       setSaving(false);
     }
   };
+
+  const handleSaveRate = async (from: string, to: string, rate: string) => {
+    const num = parseFloat(rate);
+    if (isNaN(num) || num <= 0) {
+      toast.error("Rate must be a positive number");
+      return;
+    }
+    setSavingRate(from);
+    const result = await upsertExchangeRate(from, to, num);
+    if (result.success) {
+      toast.success(`Rate saved: 1 ${from} = ${num} ${to}`);
+      fetchData();
+    } else {
+      toast.error(result.error || "Failed to save rate");
+    }
+    setSavingRate(null);
+  };
+
+  const handleDeleteRate = async (from: string, to: string) => {
+    await deleteExchangeRate(from, to);
+    toast.success("Rate removed");
+    fetchData();
+  };
+
+  const updateRateValue = (from: string, value: string) => {
+    setRates((prev) =>
+      prev.map((r) => (r.fromCurrency === from ? { ...r, rate: value } : r))
+    );
+  };
+
+  const addNewRate = () => {
+    const used = new Set(rates.map((r) => r.fromCurrency));
+    const next = CURRENCIES.find((c) => c.code !== defaultCurrency && !used.has(c.code));
+    if (!next) return;
+    setRates((prev) => [...prev, { fromCurrency: next.code, toCurrency: defaultCurrency, rate: "" }]);
+  };
+
+  const otherCurrencies = CURRENCIES.filter((c) => c.code !== defaultCurrency);
+  const usedCurrencies = new Set(rates.map((r) => r.fromCurrency));
 
   if (loading) {
     return (
@@ -96,9 +141,7 @@ export function SettingsContent() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" value={email} disabled className="opacity-60" />
-              <p className="text-xs text-muted-foreground">
-                Email cannot be changed in demo mode.
-              </p>
+              <p className="text-xs text-muted-foreground">Email cannot be changed in demo mode.</p>
             </div>
           </CardContent>
         </Card>
@@ -107,9 +150,7 @@ export function SettingsContent() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Default Currency</CardTitle>
-            <CardDescription>
-              The default currency used when adding new expenses.
-            </CardDescription>
+            <CardDescription>The default currency used when adding new expenses.</CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={defaultCurrency} onValueChange={(v) => v && setDefaultCurrency(v)}>
@@ -127,7 +168,95 @@ export function SettingsContent() {
           </CardContent>
         </Card>
 
-        {/* Theme placeholder */}
+        {/* Exchange Rates */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Exchange Rates</CardTitle>
+            <CardDescription>
+              Set conversion rates to {getCurrencySymbol(defaultCurrency)} {defaultCurrency}. Used to calculate totals when you add expenses in other currencies.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {rates.length === 0 && (
+              <p className="text-sm text-muted-foreground">No rates configured yet.</p>
+            )}
+            {rates.map((row) => (
+              <div key={row.fromCurrency} className="flex items-center gap-2">
+                <span className="text-sm w-8 text-right font-medium">1</span>
+                <Select
+                  value={row.fromCurrency}
+                  onValueChange={(val) => {
+                    if (!val) return;
+                    setRates((prev) =>
+                      prev.map((r) =>
+                        r.fromCurrency === row.fromCurrency
+                          ? { ...r, fromCurrency: val, rate: "" }
+                          : r
+                      )
+                    );
+                  }}
+                >
+                  <SelectTrigger className="w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {otherCurrencies.map((c) => (
+                      <SelectItem
+                        key={c.code}
+                        value={c.code}
+                        disabled={usedCurrencies.has(c.code) && c.code !== row.fromCurrency}
+                      >
+                        {c.symbol} {c.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">=</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0.00"
+                  value={row.rate}
+                  onChange={(e) => updateRateValue(row.fromCurrency, e.target.value)}
+                  className="w-28"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveRate(row.fromCurrency, defaultCurrency, row.rate);
+                  }}
+                />
+                <span className="text-sm font-medium">{getCurrencySymbol(defaultCurrency)} {defaultCurrency}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={savingRate === row.fromCurrency}
+                  onClick={() => handleSaveRate(row.fromCurrency, defaultCurrency, row.rate)}
+                >
+                  {savingRate === row.fromCurrency ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => handleDeleteRate(row.fromCurrency, defaultCurrency)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+
+            {otherCurrencies.some((c) => !usedCurrencies.has(c.code)) && (
+              <Button size="sm" variant="outline" onClick={addNewRate} className="mt-1">
+                + Add currency rate
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Appearance */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Appearance</CardTitle>

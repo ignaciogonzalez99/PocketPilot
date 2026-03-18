@@ -1,18 +1,28 @@
 "use server";
 
-import { getMonthlyStats, getRecentExpenses, getRecurringExpenses } from "@/lib/queries";
+import { getMonthlyStats, getRecentExpenses, getRecurringExpenses, getMonthlyIncome, getBalanceHistory } from "@/lib/queries";
 
 export async function getDashboardData(monthIso: string) {
   const month = new Date(monthIso);
 
   const stats = await getMonthlyStats(month);
-  const recentExpenses = await getRecentExpenses(5);
-  const recurringExpenses = await getRecurringExpenses();
+  const defaultCurrency = stats.defaultCurrency;
+
+  const [recentExpenses, recurringExpenses, monthlyIncome, balanceHistory] = await Promise.all([
+    getRecentExpenses(month, 5),
+    getRecurringExpenses(),
+    getMonthlyIncome(month, defaultCurrency),
+    getBalanceHistory(6, defaultCurrency),
+  ]);
 
   return {
     totalByCurrency: stats.totalByCurrency,
     totalByCategory: stats.totalByCategory,
     expenseCount: stats.expenseCount,
+    defaultCurrency,
+    totalInDefaultCurrency: stats.totalInDefaultCurrency,
+    monthlyIncome: monthlyIncome ? { amount: monthlyIncome.amount.toString(), currency: monthlyIncome.currency } : null,
+    balanceHistory,
     recentExpenses: recentExpenses.map((e) => ({
       id: e.id,
       description: e.description,

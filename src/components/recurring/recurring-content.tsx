@@ -66,8 +66,16 @@ export function RecurringContent() {
   }, [fetchData]);
 
   const handleToggle = async (id: string) => {
+    // Optimistic update so the switch responds instantly
+    setRecurring((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, isActive: !r.isActive } : r))
+    );
     const result = await toggleRecurringExpense(id);
-    if ('error' in result) {
+    if ("error" in result) {
+      // Revert on failure
+      setRecurring((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, isActive: !r.isActive } : r))
+      );
       toast.error(result.error || "Failed to toggle");
     } else {
       toast.success("Status updated");
@@ -235,13 +243,14 @@ function RecurringCard({
           <div className="flex items-center gap-1">
             <Switch
               checked={item.isActive}
-              onCheckedChange={() => onToggle(item.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(item.id);
+              }}
             />
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
+              <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors">
+                <MoreHorizontal className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onEdit(item)}>

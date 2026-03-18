@@ -37,7 +37,7 @@ export default function RootLayout({
           </div>
         </main>
         <MobileNav />
-        <Toaster position="top-right" />
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

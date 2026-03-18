@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { prisma } from "./db";
 import { DEMO_USER_ID } from "./constants";
 import {
@@ -8,6 +9,7 @@ import {
   recurringExpenseSchema,
   categorySchema,
   settingsSchema,
+  monthlyIncomeSchema,
 } from "./validations";
 
 // ─── Expenses ──────────────────────────────────────────────────────────────
@@ -117,9 +119,26 @@ export async function toggleRecurringExpense(id: string) {
   const expense = await prisma.recurringExpense.findUnique({ where: { id } });
   if (!expense) return { error: "Not found" };
 
+  const newIsActive = !expense.isActive;
+
+  // When deactivating: if today is before the charge day, the expense hasn't
+  // been charged yet this month — delete any linked expense for the current month.
+  if (!newIsActive) {
+    const now = new Date();
+    if (now.getDate() < expense.dayOfMonth) {
+      await prisma.expense.deleteMany({
+        where: {
+          recurringExpenseId: id,
+          userId: DEMO_USER_ID,
+          date: { gte: startOfMonth(now), lte: endOfMonth(now) },
+        },
+      });
+    }
+  }
+
   await prisma.recurringExpense.update({
     where: { id },
-    data: { isActive: !expense.isActive },
+    data: { isActive: newIsActive },
   });
 
   revalidatePath("/");
@@ -183,6 +202,65 @@ export async function deleteCategory(id: string) {
 
   await prisma.category.delete({ where: { id } });
   revalidatePath("/categories");
+  return { success: true };
+}
+
+// ─── Exchange Rates ─────────────────────────────────────────────────────────
+
+export async function upsertExchangeRate(fromCurrency: string, toCurrency: string, rate: number) {
+  if (fromCurrency === toCurrency) return { error: "Cannot set rate between the same currency" };
+  if (rate <= 0) return { error: "Rate must be greater than 0" };
+
+  await prisma.exchangeRate.upsert({
+    where: { userId_fromCurrency_toCurrency: { userId: DEMO_USER_ID, fromCurrency, toCurrency } },
+    update: { rate },
+    create: { userId: DEMO_USER_ID, fromCurrency, toCurrency, rate },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+export async function deleteExchangeRate(fromCurrency: string, toCurrency: string) {
+  await prisma.exchangeRate.deleteMany({
+    where: { userId: DEMO_USER_ID, fromCurrency, toCurrency },
+  });
+  revalidatePath("/");
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+// ─── Monthly Income ─────────────────────────────────────────────────────────
+
+export async function upsertMonthlyIncome(formData: unknown) {
+  const parsed = monthlyIncomeSchema.safeParse(formData);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { amount, currency, month, notes } = parsed.data;
+  const monthDate = new Date(month);
+  monthDate.setDate(1);
+  monthDate.setHours(0, 0, 0, 0);
+
+  await prisma.monthlyIncome.upsert({
+    where: {
+      userId_month_currency: {
+        userId: DEMO_USER_ID,
+        month: monthDate,
+        currency,
+      },
+    },
+    update: { amount: parseFloat(amount), notes: notes || null },
+    create: {
+      userId: DEMO_USER_ID,
+      month: monthDate,
+      amount: parseFloat(amount),
+      currency,
+      notes: notes || null,
+    },
+  });
+
+  revalidatePath("/");
   return { success: true };
 }
 

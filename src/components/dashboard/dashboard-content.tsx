@@ -18,15 +18,40 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
+  Legend,
+  LineChart,
+  Line,
+  ComposedChart,
+  ReferenceLine,
 } from "recharts";
-import { DollarSign, Receipt, Tag, Coins, LayoutDashboard } from "lucide-react";
+import {
+  DollarSign,
+  Receipt,
+  Tag,
+  Coins,
+  LayoutDashboard,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  Pencil,
+  Check,
+  X,
+} from "lucide-react";
 import { getDashboardData } from "./dashboard-actions";
-import { format } from "date-fns";
+import { upsertMonthlyIncome } from "@/lib/actions";
+import { format, startOfMonth } from "date-fns";
 
 interface DashboardData {
   totalByCurrency: Record<string, number>;
   totalByCategory: { name: string; color: string; total: number; currency: string }[];
   expenseCount: number;
+  defaultCurrency: string;
+  totalInDefaultCurrency: number | null;
+  monthlyIncome: { amount: string; currency: string } | null;
+  balanceHistory: { month: string; expenses: number; income: number; balance: number }[];
   recentExpenses: {
     id: string;
     description: string;
@@ -49,12 +74,17 @@ export function DashboardContent() {
   const { selectedMonth, setSelectedMonth } = useAppStore();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chartIndex, setChartIndex] = useState(0);
+  const [editingIncome, setEditingIncome] = useState(false);
+  const [incomeInput, setIncomeInput] = useState("");
+  const [savingIncome, setSavingIncome] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getDashboardData(selectedMonth.toISOString());
       setData(result);
+      setIncomeInput(result.monthlyIncome?.amount ?? "");
     } finally {
       setLoading(false);
     }
@@ -64,19 +94,47 @@ export function DashboardContent() {
     fetchData();
   }, [fetchData]);
 
+  const handleSaveIncome = async () => {
+    if (!data) return;
+    setSavingIncome(true);
+    const month = startOfMonth(selectedMonth);
+    month.setHours(0, 0, 0, 0);
+    await upsertMonthlyIncome({
+      amount: incomeInput || "0",
+      currency: data.primaryCurrency,
+      month: month.toISOString(),
+    });
+    await fetchData();
+    setSavingIncome(false);
+    setEditingIncome(false);
+  };
+
+  const handleCancelIncome = () => {
+    setIncomeInput(data?.monthlyIncome?.amount ?? "");
+    setEditingIncome(false);
+  };
+
   if (loading) return <DashboardSkeleton />;
   if (!data) return null;
+
+  const chartTypes = ["Horizontal Bar", "Pie", "Line"];
+  const prevChart = () => setChartIndex((i) => (i + 2) % 3);
+  const nextChart = () => setChartIndex((i) => (i + 1) % 3);
 
   const currencyEntries = Object.entries(data.totalByCurrency);
   const primaryTotal = currencyEntries[0];
   const categoriesUsed = new Set(data.totalByCategory.map((c) => c.name)).size;
   const currenciesUsed = currencyEntries.length;
 
-  // Group category totals by currency for chart (show USD by default)
-  const chartCurrency = primaryTotal?.[0] || "USD";
+  const chartCurrency = data.defaultCurrency;
   const chartData = data.totalByCategory
     .filter((c) => c.currency === chartCurrency)
     .sort((a, b) => b.total - a.total);
+
+  const totalExpenses = data.totalInDefaultCurrency ?? (primaryTotal ? primaryTotal[1] : 0);
+  const totalIncome = data.monthlyIncome ? parseFloat(data.monthlyIncome.amount) : 0;
+  const balance = totalIncome - totalExpenses;
+  const hasIncome = totalIncome > 0;
 
   return (
     <div className="space-y-6">
@@ -88,22 +146,122 @@ export function DashboardContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Spent
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {primaryTotal ? (
               <div>
                 <div className="text-2xl font-bold">
-                  {formatMoney(primaryTotal[1], primaryTotal[0])}
+                  {data.totalInDefaultCurrency != null
+                    ? formatMoney(data.totalInDefaultCurrency, data.defaultCurrency)
+                    : formatMoney(primaryTotal[1], primaryTotal[0])}
                 </div>
-                {currencyEntries.slice(1).map(([cur, amt]) => (
-                  <div key={cur} className="text-sm text-muted-foreground mt-0.5">
-                    {formatMoney(amt, cur)}
+                {currencyEntries.length > 1 && (
+                  <div className="mt-1 space-y-0.5">
+                    {currencyEntries.map(([cur, amt]) => (
+                      <div key={cur} className="text-xs text-muted-foreground">
+                        {formatMoney(amt, cur)}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </div>
+            ) : (
+              <div className="text-2xl font-bold text-muted-foreground">—</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Monthly Income Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Income</CardTitle>
+            {!editingIncome && (
+              <button
+                onClick={() => setEditingIncome(true)}
+                className="p-1 rounded hover:bg-muted transition-colors"
+                aria-label="Edit income"
+              >
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {editingIncome ? (
+              <div className="space-y-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={incomeInput}
+                  onChange={(e) => setIncomeInput(e.target.value)}
+                  className="w-full text-xl font-bold bg-transparent border-b border-primary outline-none pb-0.5"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveIncome();
+                    if (e.key === "Escape") handleCancelIncome();
+                  }}
+                />
+                <div className="flex gap-1">
+                  <button
+                    onClick={handleSaveIncome}
+                    disabled={savingIncome}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    <Check className="h-3 w-3" /> Save
+                  </button>
+                  <button
+                    onClick={handleCancelIncome}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-muted transition-colors"
+                  >
+                    <X className="h-3 w-3" /> Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-2xl font-bold">
+                  {hasIncome ? formatMoney(totalIncome, chartCurrency) : (
+                    <span className="text-muted-foreground text-lg">Not set</span>
+                  )}
+                </div>
+                {!hasIncome && (
+                  <button
+                    onClick={() => setEditingIncome(true)}
+                    className="text-xs text-primary mt-1 hover:underline"
+                  >
+                    + Add income
+                  </button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Balance Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Balance</CardTitle>
+            {hasIncome ? (
+              balance >= 0 ? (
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )
+            ) : (
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            )}
+          </CardHeader>
+          <CardContent>
+            {hasIncome ? (
+              <div>
+                <div className={`text-2xl font-bold ${balance >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                  {balance >= 0 ? "+" : ""}{formatMoney(Math.abs(balance), chartCurrency)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {balance >= 0 ? "saved this month" : "over budget"}
+                </p>
               </div>
             ) : (
               <div className="text-2xl font-bold text-muted-foreground">—</div>
@@ -113,9 +271,7 @@ export function DashboardContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Expenses
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Expenses</CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -123,59 +279,131 @@ export function DashboardContent() {
             <p className="text-xs text-muted-foreground mt-1">this month</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Categories
-            </CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{categoriesUsed}</div>
-            <p className="text-xs text-muted-foreground mt-1">used this month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Currencies
-            </CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currenciesUsed}</div>
-            <p className="text-xs text-muted-foreground mt-1">active</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Charts + Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Spending by Category Chart */}
+        {/* Spending by Category Chart Carousel */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Spending by Category</CardTitle>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={prevChart}
+                className="p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label="Previous chart"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-xs text-muted-foreground w-24 text-center select-none">
+                {chartTypes[chartIndex]}
+              </span>
+              <button
+                onClick={nextChart}
+                className="p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label="Next chart"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </CardHeader>
           <CardContent>
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={12} />
-                  <YAxis type="category" dataKey="name" width={100} fontSize={12} />
-                  <Tooltip
-                    formatter={(value) => formatMoney(Number(value), chartCurrency)}
-                    contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
-                  />
-                  <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <>
+                <div className="flex justify-center gap-1.5 mb-3">
+                  {chartTypes.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setChartIndex(i)}
+                      className={`h-1.5 rounded-full transition-all ${i === chartIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"}`}
+                      aria-label={chartTypes[i]}
+                    />
+                  ))}
+                </div>
+
+                {chartIndex === 0 && (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={12} />
+                      <YAxis type="category" dataKey="name" width={100} fontSize={12} />
+                      <Tooltip
+                        formatter={(value) => formatMoney(Number(value), chartCurrency)}
+                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                      />
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                        {chartData.map((entry, index) => (
+                          <Cell key={index} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+
+                {chartIndex === 1 && (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        dataKey="total"
+                        nameKey="name"
+                        cx="50%"
+                        cy="45%"
+                        outerRadius={90}
+                        innerRadius={40}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={index} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => formatMoney(Number(value), chartCurrency)}
+                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                      />
+                      <Legend
+                        iconType="circle"
+                        iconSize={8}
+                        formatter={(value) => <span style={{ fontSize: 12 }}>{value}</span>}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+
+                {chartIndex === 2 && (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={chartData} margin={{ left: 16, right: 24, top: 8, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" fontSize={11} tick={{ fontSize: 11 }} />
+                      <YAxis tickFormatter={(v) => `$${v}`} fontSize={12} />
+                      <Tooltip
+                        formatter={(value) => formatMoney(Number(value), chartCurrency)}
+                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        strokeWidth={2}
+                        stroke="#6366f1"
+                        dot={(props) => {
+                          const { cx, cy, index } = props;
+                          return (
+                            <circle
+                              key={index}
+                              cx={cx}
+                              cy={cy}
+                              r={5}
+                              fill={chartData[index]?.color ?? "#6366f1"}
+                              stroke="white"
+                              strokeWidth={2}
+                            />
+                          );
+                        }}
+                        activeDot={{ r: 7 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </>
             ) : (
               <EmptyState
                 icon={LayoutDashboard}
@@ -201,14 +429,9 @@ export function DashboardContent() {
                     className="flex items-center justify-between py-2 border-b border-border last:border-0"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {expense.description}
-                      </p>
+                      <p className="text-sm font-medium truncate">{expense.description}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <CategoryBadge
-                          name={expense.category.name}
-                          color={expense.category.color}
-                        />
+                        <CategoryBadge name={expense.category.name} color={expense.category.color} />
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(expense.date), "MMM d")}
                         </span>
@@ -232,6 +455,57 @@ export function DashboardContent() {
         </Card>
       </div>
 
+      {/* Balance History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Balance History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.balanceHistory.some((m) => m.expenses > 0 || m.income > 0) ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <ComposedChart data={data.balanceHistory} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" fontSize={12} />
+                <YAxis tickFormatter={(v) => `$${v}`} fontSize={12} />
+                <Tooltip
+                  formatter={(value, name) => [
+                    formatMoney(Number(value), chartCurrency),
+                    name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Balance",
+                  ]}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                />
+                <Bar dataKey="income" name="income" fill="#10b981" opacity={0.85} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" name="expenses" fill="#f43f5e" opacity={0.85} radius={[4, 4, 0, 0]} />
+                <Line
+                  type="monotone"
+                  dataKey="balance"
+                  name="balance"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  dot={{ r: 4, fill: "#6366f1", stroke: "white", strokeWidth: 2 }}
+                  activeDot={{ r: 6 }}
+                />
+                <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" />
+                <Legend
+                  formatter={(value) => (
+                    <span style={{ fontSize: 12 }}>
+                      {value === "income" ? "Income" : value === "expenses" ? "Expenses" : "Balance"}
+                    </span>
+                  )}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState
+              icon={TrendingUp}
+              title="No history yet"
+              description="Set your monthly income and add expenses to see the balance history."
+              className="py-8"
+            />
+          )}
+        </CardContent>
+      </Card>
+
       {/* Recurring Expenses Summary */}
       <Card>
         <CardHeader>
@@ -248,13 +522,8 @@ export function DashboardContent() {
                     className="flex items-center justify-between rounded-lg border border-border p-3"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {expense.description}
-                      </p>
-                      <CategoryBadge
-                        name={expense.category.name}
-                        color={expense.category.color}
-                      />
+                      <p className="text-sm font-medium truncate">{expense.description}</p>
+                      <CategoryBadge name={expense.category.name} color={expense.category.color} />
                     </div>
                     <span className="text-sm font-semibold ml-3">
                       {formatMoney(expense.amount, expense.currency)}
