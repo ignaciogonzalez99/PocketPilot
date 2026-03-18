@@ -1,6 +1,7 @@
 "use server";
 
 import { getMonthlyStats, getRecentExpenses, getRecurringExpenses, getMonthlyIncome, getBalanceHistory } from "@/lib/queries";
+import { getUsdToUyuRate, type ExchangeRate } from "@/lib/exchange-rate";
 
 export async function getDashboardData(monthIso: string) {
   const month = new Date(monthIso);
@@ -8,11 +9,12 @@ export async function getDashboardData(monthIso: string) {
   const stats = await getMonthlyStats(month);
   const defaultCurrency = stats.defaultCurrency;
 
-  const [recentExpenses, recurringExpenses, monthlyIncome, balanceHistory] = await Promise.all([
+  const [recentExpenses, recurringExpenses, monthlyIncome, balanceHistory, exchangeRate] = await Promise.all([
     getRecentExpenses(month, 5),
     getRecurringExpenses(),
     getMonthlyIncome(month, defaultCurrency),
     getBalanceHistory(6, defaultCurrency),
+    getUsdToUyuRate(),
   ]);
 
   return {
@@ -23,6 +25,12 @@ export async function getDashboardData(monthIso: string) {
     totalInDefaultCurrency: stats.totalInDefaultCurrency,
     monthlyIncome: monthlyIncome ? { amount: monthlyIncome.amount.toString(), currency: monthlyIncome.currency } : null,
     balanceHistory,
+    exchangeRate: {
+      compra: exchangeRate.compra,
+      venta: exchangeRate.venta,
+      fechaActualizacion: exchangeRate.fechaActualizacion,
+      isDefault: exchangeRate.isDefault,
+    } as ExchangeRate,
     recentExpenses: recentExpenses.map((e) => ({
       id: e.id,
       description: e.description,

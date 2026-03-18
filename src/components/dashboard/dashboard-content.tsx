@@ -39,10 +39,12 @@ import {
   Pencil,
   Check,
   X,
+  ArrowRightLeft,
 } from "lucide-react";
 import { getDashboardData } from "./dashboard-actions";
 import { upsertMonthlyIncome } from "@/lib/actions";
 import { format, startOfMonth } from "date-fns";
+import type { ExchangeRate } from "@/lib/exchange-rate";
 
 interface DashboardData {
   totalByCurrency: Record<string, number>;
@@ -52,6 +54,7 @@ interface DashboardData {
   totalInDefaultCurrency: number | null;
   monthlyIncome: { amount: string; currency: string } | null;
   balanceHistory: { month: string; expenses: number; income: number; balance: number }[];
+  exchangeRate: ExchangeRate;
   recentExpenses: {
     id: string;
     description: string;
@@ -279,6 +282,55 @@ export function DashboardContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Exchange Rate USD ↔ UYU */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">USD → UYU Exchange Rate</CardTitle>
+          <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Buy (Compra)</p>
+              <p className="text-xl font-bold">$U{data.exchangeRate.compra.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Sell (Venta)</p>
+              <p className="text-xl font-bold">$U{data.exchangeRate.venta.toFixed(2)}</p>
+            </div>
+            <div>
+              {data.totalByCurrency["USD"] ? (
+                <>
+                  <p className="text-sm text-muted-foreground">Your USD in UYU</p>
+                  <p className="text-xl font-bold">
+                    {formatMoney(data.totalByCurrency["USD"] * data.exchangeRate.venta, "UYU")}
+                  </p>
+                </>
+              ) : data.totalByCurrency["UYU"] ? (
+                <>
+                  <p className="text-sm text-muted-foreground">Your UYU in USD</p>
+                  <p className="text-xl font-bold">
+                    {formatMoney(data.totalByCurrency["UYU"] / data.exchangeRate.compra, "USD")}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">Conversion</p>
+                  <p className="text-sm text-muted-foreground">$1 USD = $U{data.exchangeRate.venta.toFixed(2)}</p>
+                </>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            {data.exchangeRate.isDefault
+              ? "Using default rate — live API unavailable."
+              : data.exchangeRate.fechaActualizacion
+                ? `Updated: ${format(new Date(data.exchangeRate.fechaActualizacion), "MMM d, yyyy HH:mm")}`
+                : "Live rate from dolarapi.com"}
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Charts + Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
