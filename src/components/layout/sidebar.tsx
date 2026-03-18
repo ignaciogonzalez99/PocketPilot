@@ -11,6 +11,7 @@ import {
   Settings,
   Wallet,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -52,6 +53,9 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="px-3 py-3 border-t border-border">
+        <ThemeToggle />
+      </div>
     </aside>
   );
 }

@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { getSettingsData } from "./settings-actions";
 import { toast } from "sonner";
 import { Loader2, Save, Trash2 } from "lucide-react";
+import { ThemeSelector } from "@/components/theme/theme-toggle";
 
 interface RateRow {
   fromCurrency: string;
@@ -262,12 +263,10 @@ export function SettingsContent() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Appearance</CardTitle>
-            <CardDescription>Customize the look and feel of the app.</CardDescription>
+            <CardDescription>Choose your preferred theme.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Theme customization coming soon. Currently using the system default.
-            </p>
+            <ThemeSelector />
           </CardContent>
         </Card>
 

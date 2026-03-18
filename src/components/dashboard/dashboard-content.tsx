@@ -381,7 +381,7 @@ export function DashboardContent() {
                         <YAxis type="category" dataKey="name" width={70} fontSize={10} tick={{ fontSize: 10 }} />
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value), chartCurrency)}
-                          contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 12 }}
+                          contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
                         />
                         <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                           {chartData.map((entry, index) => (
@@ -412,7 +412,7 @@ export function DashboardContent() {
                         </Pie>
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value), chartCurrency)}
-                          contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 12 }}
+                          contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
                         />
                         <Legend
                           iconType="circle"
@@ -434,7 +434,7 @@ export function DashboardContent() {
                         <YAxis tickFormatter={(v) => `$${v}`} fontSize={10} width={45} />
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value), chartCurrency)}
-                          contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 12 }}
+                          contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
                         />
                         <Line
                           type="monotone"
@@ -531,7 +531,7 @@ export function DashboardContent() {
                       formatMoney(Number(value), chartCurrency),
                       name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Balance",
                     ]}
-                    contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 12 }}
+                    contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
                   />
                   <Bar dataKey="income" name="income" fill="#10b981" opacity={0.85} radius={[4, 4, 0, 0]} />
                   <Bar dataKey="expenses" name="expenses" fill="#f43f5e" opacity={0.85} radius={[4, 4, 0, 0]} />
