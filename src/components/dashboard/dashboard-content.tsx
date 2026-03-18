@@ -128,7 +128,6 @@ export function DashboardContent() {
 
   const chartCurrency = data.defaultCurrency;
   const chartData = data.totalByCategory
-    .filter((c) => c.currency === chartCurrency)
     .sort((a, b) => b.total - a.total);
 
   const totalExpenses = data.totalInDefaultCurrency ?? (primaryTotal ? primaryTotal[1] : 0);

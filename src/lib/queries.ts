@@ -75,35 +75,32 @@ export async function getMonthlyStats(month: Date) {
   };
 
   const totalByCurrency: Record<string, number> = {};
+  // Group by categoryId only, amounts converted to defaultCurrency so all categories show in charts
   const totalByCategory: Record<string, { name: string; color: string; total: number; currency: string }> = {};
   let totalInDefaultCurrency = 0;
   let canConvertAll = true;
 
-  const addEntry = (
-    amt: number,
-    currency: string,
-    categoryKey: string,
-    name: string,
-    color: string
-  ) => {
+  const addEntry = (amt: number, currency: string, categoryId: string, name: string, color: string) => {
     totalByCurrency[currency] = (totalByCurrency[currency] || 0) + amt;
-    if (!totalByCategory[categoryKey]) {
-      totalByCategory[categoryKey] = { name, color, total: 0, currency };
+
+    const converted = toDefault(amt, currency) ?? amt; // fallback to original if no rate
+    if (toDefault(amt, currency) == null) canConvertAll = false;
+    else totalInDefaultCurrency += converted;
+
+    if (!totalByCategory[categoryId]) {
+      totalByCategory[categoryId] = { name, color, total: 0, currency: defaultCurrency };
     }
-    totalByCategory[categoryKey].total += amt;
-    const converted = toDefault(amt, currency);
-    if (converted != null) totalInDefaultCurrency += converted;
-    else canConvertAll = false;
+    totalByCategory[categoryId].total += converted;
   };
 
   for (const exp of expenses) {
-    addEntry(Number(exp.amount), exp.currency, `${exp.categoryId}-${exp.currency}`, exp.category.name, exp.category.color);
+    addEntry(Number(exp.amount), exp.currency, exp.categoryId, exp.category.name, exp.category.color);
   }
 
   const linkedRecurringIds = new Set(expenses.map((e) => e.recurringExpenseId).filter(Boolean));
   for (const rec of activeRecurring) {
     if (linkedRecurringIds.has(rec.id)) continue;
-    addEntry(Number(rec.amount), rec.currency, `${rec.categoryId}-${rec.currency}`, rec.category.name, rec.category.color);
+    addEntry(Number(rec.amount), rec.currency, rec.categoryId, rec.category.name, rec.category.color);
   }
 
   return {
