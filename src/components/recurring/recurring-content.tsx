@@ -228,15 +228,15 @@ function RecurringCard({
 }) {
   return (
     <Card className={!item.isActive ? "opacity-60" : undefined}>
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{item.description}</p>
-            <div className="flex items-center gap-2 mt-1">
+            <p className="text-xs sm:text-sm font-medium truncate">{item.description}</p>
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
               <CategoryBadge name={item.category.name} color={item.category.color} />
-              <span className="text-xs text-muted-foreground">Day {item.dayOfMonth}</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Day {item.dayOfMonth}</span>
             </div>
-            <p className="text-lg font-semibold mt-2">
+            <p className="text-base sm:text-lg font-semibold mt-1.5 sm:mt-2">
               {formatMoney(item.amount, item.currency)}
             </p>
           </div>

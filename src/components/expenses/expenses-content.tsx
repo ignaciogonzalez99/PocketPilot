@@ -152,7 +152,62 @@ export function ExpensesContent() {
           </Button>
         </EmptyState>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <>
+        {/* Mobile card layout */}
+        <div className="space-y-2 sm:hidden">
+          {expenses.map((expense) => (
+            <div
+              key={expense.id}
+              className="rounded-lg border border-border p-3 space-y-1.5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium truncate">{expense.description}</span>
+                    {expense.isRecurring && (
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0 shrink-0">
+                        <Repeat className="h-2.5 w-2.5 mr-0.5" />
+                        Recurring
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors shrink-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEdit(expense)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => handleDelete(expense.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CategoryBadge name={expense.category.name} color={expense.category.color} />
+                  <span className="text-[11px] text-muted-foreground">
+                    {format(new Date(expense.date), "MMM d")}
+                  </span>
+                </div>
+                <span className="text-sm font-semibold">
+                  {formatMoney(expense.amount, expense.currency)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table layout */}
+        <div className="hidden sm:block rounded-xl border border-border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -211,6 +266,7 @@ export function ExpensesContent() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       {/* Add/Edit Dialog */}

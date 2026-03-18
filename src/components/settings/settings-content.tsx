@@ -181,8 +181,8 @@ export function SettingsContent() {
               <p className="text-sm text-muted-foreground">No rates configured yet.</p>
             )}
             {rates.map((row) => (
-              <div key={row.fromCurrency} className="flex items-center gap-2">
-                <span className="text-sm w-8 text-right font-medium">1</span>
+              <div key={row.fromCurrency} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2.5 sm:border-0 sm:p-0">
+                <span className="text-sm w-5 sm:w-8 text-right font-medium">1</span>
                 <Select
                   value={row.fromCurrency}
                   onValueChange={(val) => {
@@ -196,7 +196,7 @@ export function SettingsContent() {
                     );
                   }}
                 >
-                  <SelectTrigger className="w-[110px]">
+                  <SelectTrigger className="w-[90px] sm:w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -219,32 +219,34 @@ export function SettingsContent() {
                   placeholder="0.00"
                   value={row.rate}
                   onChange={(e) => updateRateValue(row.fromCurrency, e.target.value)}
-                  className="w-28"
+                  className="w-20 sm:w-28"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleSaveRate(row.fromCurrency, defaultCurrency, row.rate);
                   }}
                 />
                 <span className="text-sm font-medium">{getCurrencySymbol(defaultCurrency)} {defaultCurrency}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={savingRate === row.fromCurrency}
-                  onClick={() => handleSaveRate(row.fromCurrency, defaultCurrency, row.rate)}
-                >
-                  {savingRate === row.fromCurrency ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Save className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => handleDeleteRate(row.fromCurrency, defaultCurrency)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex gap-1 ml-auto sm:ml-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={savingRate === row.fromCurrency}
+                    onClick={() => handleSaveRate(row.fromCurrency, defaultCurrency, row.rate)}
+                  >
+                    {savingRate === row.fromCurrency ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteRate(row.fromCurrency, defaultCurrency)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             ))}
 
