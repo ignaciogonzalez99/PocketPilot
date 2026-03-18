@@ -101,7 +101,7 @@ export function DashboardContent() {
     month.setHours(0, 0, 0, 0);
     await upsertMonthlyIncome({
       amount: incomeInput || "0",
-      currency: data.primaryCurrency,
+      currency: data.defaultCurrency,
       month: month.toISOString(),
     });
     await fetchData();
