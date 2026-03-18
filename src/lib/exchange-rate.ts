@@ -1,5 +1,3 @@
-"use server";
-
 const API_URL = "https://uy.dolarapi.com/v1/cotizaciones/usd";
 
 // Fallback rate if the API is unavailable
