@@ -7,7 +7,7 @@ export async function getDashboardData(monthIso: string) {
   const month = new Date(monthIso);
 
   const stats = await getMonthlyStats(month).catch((e) => {
-    console.error("[getDashboardData] DB error:", e?.message ?? String(e));
+    console.error("[getDashboardData] DB error:", e?.message ?? String(e), "\nCode:", e?.code, "\nStack:", e?.stack?.split("\n").slice(0,3).join(" | "));
     throw e;
   });
   const defaultCurrency = stats.defaultCurrency;

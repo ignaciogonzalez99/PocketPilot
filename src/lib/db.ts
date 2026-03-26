@@ -4,12 +4,15 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL;
-  const isPrismaHost = connectionString?.includes("db.prisma.io");
-  const adapter = new PrismaPg({
-    connectionString,
-    ssl: isPrismaHost ? { rejectUnauthorized: false } : undefined,
-  });
+  let connectionString = process.env.DATABASE_URL ?? "";
+
+  // pg v8 treats sslmode=require as verify-full; use uselibpqcompat for standard SSL without strict cert checking
+  if (connectionString.includes("db.prisma.io") && !connectionString.includes("uselibpqcompat")) {
+    const sep = connectionString.includes("?") ? "&" : "?";
+    connectionString += `${sep}uselibpqcompat=true`;
+  }
+
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 
