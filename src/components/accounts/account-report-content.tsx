@@ -56,7 +56,7 @@ export function AccountReportContent({ accountId }: AccountReportContentProps) {
       <div className="flex items-center gap-3">
         <Link
           href="/accounts"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] py-2 active:scale-95"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Accounts

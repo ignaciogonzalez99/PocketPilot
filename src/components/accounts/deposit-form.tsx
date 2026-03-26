@@ -64,6 +64,7 @@ export function DepositForm({ accountId, accountName, currentBalance, currency, 
         <Input
           id="deposit-amount"
           type="number"
+          inputMode="decimal"
           step="0.01"
           min="0.01"
           placeholder="0.00"

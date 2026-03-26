@@ -133,7 +133,7 @@ export function AccountsContent() {
                   </Badge>
                 </div>
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors shrink-0">
+                  <DropdownMenuTrigger className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors shrink-0 active:scale-95">
                     <MoreHorizontal className="h-4 w-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
