@@ -20,8 +20,32 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PocketPilot — Your Multi-Currency Finance Tracker",
-  description: "Track spending across currencies, set your monthly income, and always know where you stand.",
+  title: "PocketPilot — Manage Money Across Currencies",
+  description: "Track spending, convert currencies, and stay on budget wherever you are. PocketPilot keeps your finances clear in any currency.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
+  openGraph: {
+    title: "PocketPilot — Manage Money Across Currencies",
+    description: "Track spending, convert currencies, and stay on budget wherever you are. PocketPilot keeps your finances clear in any currency.",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "PocketPilot app — a compass icon on a dark teal background",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PocketPilot — Manage Money Across Currencies",
+    description: "Track spending, convert currencies, and stay on budget wherever you are. PocketPilot keeps your finances clear in any currency.",
+    images: ["/opengraph-image.png"],
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

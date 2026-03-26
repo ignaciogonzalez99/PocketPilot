@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,6 @@ import {
   Repeat,
   Tag,
   Settings,
-  Wallet,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
@@ -27,12 +27,13 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex w-64 flex-col border-r border-border bg-sidebar">
       <div className="flex items-center gap-2.5 px-6 py-5 border-b border-border">
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0"
-          style={{ background: "linear-gradient(135deg, #1A6B5C, #2A9D8F)" }}
-        >
-          <Wallet className="h-4 w-4 text-white" />
-        </div>
+        <Image
+          src="/icon-192.png"
+          alt="PocketPilot"
+          width={32}
+          height={32}
+          className="rounded-lg shrink-0"
+        />
         <span className="text-lg font-normal tracking-tight font-serif">PocketPilot</span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-0.5">
