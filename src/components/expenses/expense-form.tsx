@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { createExpense, updateExpense } from "@/lib/actions";
-import { CURRENCIES } from "@/lib/constants";
+import { CURRENCIES, formatMoney } from "@/lib/constants";
 import { type ExpenseFormData } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { Loader2 } from "lucide-react";
 
 interface ExpenseFormProps {
   categories: { id: string; name: string; color: string }[];
+  accounts?: { id: string; name: string; currency: string; currentBalance: string }[];
   expense?: {
     id: string;
     description: string;
@@ -28,13 +29,14 @@ interface ExpenseFormProps {
     currency: string;
     date: string;
     categoryId: string;
+    accountId?: string | null;
     notes: string | null;
   } | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function ExpenseForm({ categories, expense, onSuccess, onCancel }: ExpenseFormProps) {
+export function ExpenseForm({ categories, accounts, expense, onSuccess, onCancel }: ExpenseFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const isEditing = !!expense;
 
@@ -51,6 +53,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onCancel }: Expens
       currency: expense?.currency || "USD",
       date: expense?.date ? new Date(expense.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
       categoryId: expense?.categoryId || "",
+      accountId: expense?.accountId ?? undefined,
       notes: expense?.notes || "",
     },
   });
@@ -62,7 +65,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onCancel }: Expens
         ? await updateExpense(expense!.id, data)
         : await createExpense(data);
 
-      if (result.success) {
+      if ("success" in result) {
         toast.success(isEditing ? "Expense updated" : "Expense added");
         onSuccess();
       } else {
@@ -155,6 +158,33 @@ export function ExpenseForm({ categories, expense, onSuccess, onCancel }: Expens
           )}
         </div>
       </div>
+
+      {accounts && accounts.length > 0 && (() => {
+        const selectedCurrency = watch("currency");
+        const filteredAccounts = accounts.filter((a) => a.currency === selectedCurrency);
+        if (filteredAccounts.length === 0) return null;
+        return (
+          <div className="space-y-2">
+            <Label>Account (optional)</Label>
+            <Select
+              value={watch("accountId") || "none"}
+              onValueChange={(v) => setValue("accountId", v === "none" ? undefined : v as string)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="No account" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No account</SelectItem>
+                {filteredAccounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name} ({formatMoney(a.currentBalance, a.currency)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+      })()}
 
       <div className="space-y-2">
         <Label htmlFor="notes">Notes (optional)</Label>

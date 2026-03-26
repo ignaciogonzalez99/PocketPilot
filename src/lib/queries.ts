@@ -197,3 +197,31 @@ export async function getBalanceHistory(months = 6, defaultCurrency: string) {
 
   return history;
 }
+
+export async function getAccounts() {
+  return prisma.account.findMany({
+    where: { userId: DEMO_USER_ID },
+    orderBy: { name: "asc" },
+  });
+}
+
+export async function getAccountById(id: string) {
+  return prisma.account.findFirst({
+    where: { id, userId: DEMO_USER_ID },
+  });
+}
+
+export async function getAccountExpenses(accountId: string, month: Date) {
+  const start = startOfMonth(month);
+  const end = endOfMonth(month);
+
+  return prisma.expense.findMany({
+    where: {
+      accountId,
+      userId: DEMO_USER_ID,
+      date: { gte: start, lte: end },
+    },
+    include: { category: true },
+    orderBy: { date: "desc" },
+  });
+}

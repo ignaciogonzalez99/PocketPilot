@@ -1,12 +1,15 @@
 "use server";
 
-import { getExpenses, getCategories } from "@/lib/queries";
+import { getExpenses, getCategories, getAccounts } from "@/lib/queries";
 
 export async function getExpensesPageData(monthIso: string, categoryId?: string, currency?: string) {
   const month = new Date(monthIso);
 
-  const expenses = await getExpenses(month, categoryId, currency);
-  const categories = await getCategories();
+  const [expenses, categories, accounts] = await Promise.all([
+    getExpenses(month, categoryId, currency),
+    getCategories(),
+    getAccounts(),
+  ]);
 
   return {
     expenses: expenses.map((e) => ({
@@ -24,6 +27,12 @@ export async function getExpensesPageData(monthIso: string, categoryId?: string,
       id: c.id,
       name: c.name,
       color: c.color,
+    })),
+    accounts: accounts.map((a) => ({
+      id: a.id,
+      name: a.name,
+      currency: a.currency,
+      currentBalance: a.currentBalance.toString(),
     })),
   };
 }

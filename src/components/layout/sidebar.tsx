@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
+  Wallet,
   Receipt,
   Repeat,
   Tag,
@@ -15,6 +16,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/recurring", label: "Recurring", icon: Repeat },
   { href: "/categories", label: "Categories", icon: Tag },

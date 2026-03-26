@@ -58,10 +58,18 @@ interface Category {
   color: string;
 }
 
+interface AccountOption {
+  id: string;
+  name: string;
+  currency: string;
+  currentBalance: string;
+}
+
 export function ExpensesContent() {
   const { selectedMonth, setSelectedMonth, filterCategory, setFilterCategory, filterCurrency, setFilterCurrency } = useAppStore();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseRow | null>(null);
@@ -76,6 +84,7 @@ export function ExpensesContent() {
       );
       setExpenses(result.expenses);
       setCategories(result.categories);
+      setAccounts(result.accounts);
     } finally {
       setLoading(false);
     }
@@ -277,6 +286,7 @@ export function ExpensesContent() {
           </DialogHeader>
           <ExpenseForm
             categories={categories}
+            accounts={accounts}
             expense={editingExpense}
             onSuccess={handleFormSuccess}
             onCancel={() => setDialogOpen(false)}

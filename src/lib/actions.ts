@@ -10,6 +10,8 @@ import {
   categorySchema,
   settingsSchema,
   monthlyIncomeSchema,
+  accountSchema,
+  depositSchema,
 } from "./validations";
 
 // ─── Expenses ──────────────────────────────────────────────────────────────
@@ -18,22 +20,59 @@ export async function createExpense(formData: unknown) {
   const parsed = expenseSchema.safeParse(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { description, amount, currency, date, categoryId, notes } = parsed.data;
+  const { description, amount, currency, date, categoryId, accountId, notes } = parsed.data;
+  const expenseAmount = parseFloat(amount);
 
-  await prisma.expense.create({
-    data: {
-      description,
-      amount: parseFloat(amount),
-      currency,
-      date: new Date(date),
-      categoryId,
-      userId: DEMO_USER_ID,
-      notes: notes || null,
-    },
-  });
+  if (accountId) {
+    const result = await prisma.$transaction(async (tx) => {
+      const account = await tx.account.findFirst({
+        where: { id: accountId, userId: DEMO_USER_ID },
+      });
+      if (!account) return { error: "Account not found" };
+
+      if (Number(account.currentBalance) < expenseAmount) {
+        return { error: "Insufficient balance in account" };
+      }
+
+      await tx.expense.create({
+        data: {
+          description,
+          amount: expenseAmount,
+          currency,
+          date: new Date(date),
+          categoryId,
+          accountId,
+          userId: DEMO_USER_ID,
+          notes: notes || null,
+        },
+      });
+
+      await tx.account.update({
+        where: { id: accountId },
+        data: { currentBalance: { decrement: expenseAmount } },
+      });
+
+      return { success: true };
+    });
+
+    if ("error" in result) return result;
+  } else {
+    await prisma.expense.create({
+      data: {
+        description,
+        amount: expenseAmount,
+        currency,
+        date: new Date(date),
+        categoryId,
+        userId: DEMO_USER_ID,
+        notes: notes || null,
+      },
+    });
+  }
 
   revalidatePath("/");
   revalidatePath("/expenses");
+  revalidatePath("/accounts");
   return { success: true };
 }
 
@@ -61,9 +100,24 @@ export async function updateExpense(id: string, formData: unknown) {
 }
 
 export async function deleteExpense(id: string) {
-  await prisma.expense.delete({ where: { id } });
+  const expense = await prisma.expense.findUnique({ where: { id } });
+  if (!expense) return { error: "Expense not found" };
+
+  if (expense.accountId) {
+    await prisma.$transaction(async (tx) => {
+      await tx.expense.delete({ where: { id } });
+      await tx.account.update({
+        where: { id: expense.accountId! },
+        data: { currentBalance: { increment: Number(expense.amount) } },
+      });
+    });
+  } else {
+    await prisma.expense.delete({ where: { id } });
+  }
+
   revalidatePath("/");
   revalidatePath("/expenses");
+  revalidatePath("/accounts");
   return { success: true };
 }
 
@@ -261,6 +315,86 @@ export async function upsertMonthlyIncome(formData: unknown) {
   });
 
   revalidatePath("/");
+  return { success: true };
+}
+
+// ─── Accounts ──────────────────────────────────────────────────────────────
+
+export async function createAccount(formData: unknown) {
+  const parsed = accountSchema.safeParse(formData);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { name, currency, initialBalance } = parsed.data;
+  const balance = parseFloat(initialBalance);
+
+  const existing = await prisma.account.findUnique({
+    where: { userId_name: { userId: DEMO_USER_ID, name } },
+  });
+  if (existing) return { error: "An account with this name already exists" };
+
+  await prisma.account.create({
+    data: {
+      name,
+      currency,
+      initialBalance: balance,
+      currentBalance: balance,
+      userId: DEMO_USER_ID,
+    },
+  });
+
+  revalidatePath("/accounts");
+  revalidatePath("/expenses");
+  return { success: true };
+}
+
+export async function updateAccount(id: string, formData: unknown) {
+  const parsed = accountSchema.safeParse(formData);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { name, currency, initialBalance } = parsed.data;
+
+  const account = await prisma.account.findFirst({ where: { id, userId: DEMO_USER_ID } });
+  if (!account) return { error: "Account not found" };
+
+  const newInitial = parseFloat(initialBalance);
+  const diff = newInitial - Number(account.initialBalance);
+  const newCurrent = Number(account.currentBalance) + diff;
+  if (newCurrent < 0) return { error: "New initial balance would result in negative current balance" };
+
+  await prisma.account.update({
+    where: { id },
+    data: {
+      name,
+      currency,
+      initialBalance: newInitial,
+      currentBalance: newCurrent,
+    },
+  });
+
+  revalidatePath("/accounts");
+  revalidatePath("/expenses");
+  return { success: true };
+}
+
+export async function deleteAccount(id: string) {
+  await prisma.account.delete({ where: { id } });
+  revalidatePath("/accounts");
+  revalidatePath("/expenses");
+  return { success: true };
+}
+
+export async function depositToAccount(id: string, formData: unknown) {
+  const parsed = depositSchema.safeParse(formData);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const amount = parseFloat(parsed.data.amount);
+
+  await prisma.account.update({
+    where: { id },
+    data: { currentBalance: { increment: amount } },
+  });
+
+  revalidatePath("/accounts");
   return { success: true };
 }
 
