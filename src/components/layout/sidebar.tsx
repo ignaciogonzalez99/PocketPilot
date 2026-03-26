@@ -26,7 +26,7 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex w-64 flex-col border-r border-border bg-sidebar">
-      <div className="relative overflow-hidden h-[160px] w-full">
+      <div className="relative overflow-hidden h-[100px] w-full">
         <Image
           src="/banner.png"
           alt="PocketPilot banner"
