@@ -6,7 +6,10 @@ import { getUsdToUyuRate, type ExchangeRate } from "@/lib/exchange-rate";
 export async function getDashboardData(monthIso: string) {
   const month = new Date(monthIso);
 
-  const stats = await getMonthlyStats(month);
+  const stats = await getMonthlyStats(month).catch((e) => {
+    console.error("[getDashboardData] DB error:", e?.message ?? String(e));
+    throw e;
+  });
   const defaultCurrency = stats.defaultCurrency;
 
   const [recentExpenses, recurringExpenses, monthlyIncome, balanceHistory, exchangeRate] = await Promise.all([
