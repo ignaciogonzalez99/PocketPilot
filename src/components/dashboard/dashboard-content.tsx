@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAppStore } from "@/lib/store";
 import { formatMoney } from "@/lib/constants";
-import { PageHeader } from "@/components/layout/page-header";
 import { MonthPicker } from "@/components/shared/month-picker";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { CategoryBadge } from "@/components/shared/category-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DashboardSkeleton } from "@/components/shared/loading-skeleton";
@@ -155,12 +155,9 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Your Money, This Month"
-        description="A clear picture of where your money went — and what is left."
-      >
+      <DashboardHero>
         <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-      </PageHeader>
+      </DashboardHero>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
