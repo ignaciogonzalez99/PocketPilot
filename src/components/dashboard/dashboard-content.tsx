@@ -207,7 +207,7 @@ export function DashboardContent() {
             {!editingIncome && (
               <button
                 onClick={() => setEditingIncome(true)}
-                className="p-1 rounded hover:bg-muted transition-colors"
+                className="flex items-center justify-center h-11 w-11 -mr-2 rounded hover:bg-muted transition-colors active:scale-95"
                 aria-label="Edit income"
               >
                 <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
@@ -219,6 +219,7 @@ export function DashboardContent() {
               <div className="space-y-2">
                 <input
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   step="0.01"
                   value={incomeInput}
@@ -234,13 +235,13 @@ export function DashboardContent() {
                   <button
                     onClick={handleSaveIncome}
                     disabled={savingIncome}
-                    className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs px-3 min-h-[44px] py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 active:scale-95"
                   >
                     <Check className="h-3 w-3" /> Save
                   </button>
                   <button
                     onClick={handleCancelIncome}
-                    className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-muted transition-colors"
+                    className="flex items-center gap-1 text-xs px-3 min-h-[44px] py-2 rounded hover:bg-muted transition-colors active:scale-95"
                   >
                     <X className="h-3 w-3" /> Cancel
                   </button>
@@ -368,7 +369,7 @@ export function DashboardContent() {
             <div className="flex items-center gap-0.5 sm:gap-1">
               <button
                 onClick={prevChart}
-                className="p-1.5 sm:p-1 rounded-md hover:bg-muted active:bg-muted/70 transition-colors"
+                className="flex items-center justify-center h-11 w-11 rounded-md hover:bg-muted active:bg-muted/70 transition-colors active:scale-95"
                 aria-label="Previous chart"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -378,7 +379,7 @@ export function DashboardContent() {
               </span>
               <button
                 onClick={nextChart}
-                className="p-1.5 sm:p-1 rounded-md hover:bg-muted active:bg-muted/70 transition-colors"
+                className="flex items-center justify-center h-11 w-11 rounded-md hover:bg-muted active:bg-muted/70 transition-colors active:scale-95"
                 aria-label="Next chart"
               >
                 <ChevronRight className="h-4 w-4" />

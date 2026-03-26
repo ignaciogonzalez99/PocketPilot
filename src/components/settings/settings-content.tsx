@@ -215,6 +215,7 @@ export function SettingsContent() {
                 <span className="text-sm text-muted-foreground">=</span>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   step="any"
                   placeholder="0.00"

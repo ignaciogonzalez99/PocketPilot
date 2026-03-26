@@ -182,7 +182,7 @@ export function ExpensesContent() {
                   </div>
                 </div>
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors shrink-0">
+                  <DropdownMenuTrigger className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors shrink-0 -mr-1.5 active:scale-95">
                     <MoreHorizontal className="h-4 w-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

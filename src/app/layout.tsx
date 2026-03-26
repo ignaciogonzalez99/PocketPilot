@@ -72,9 +72,10 @@ export default function RootLayout({
              * md: overrides both values back to normal desktop padding.
              */}
             <div
-              className="mx-auto max-w-6xl px-4 pb-20 md:px-8 md:pt-6 md:pb-6"
+              className="mx-auto max-w-6xl px-4 md:px-8 md:pt-6 md:pb-6"
               style={{
                 paddingTop: "calc(96px + 1.5rem + env(safe-area-inset-top))",
+                paddingBottom: "calc(5rem + env(safe-area-inset-bottom))",
               }}
             >
               {children}
