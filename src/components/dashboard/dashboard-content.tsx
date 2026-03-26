@@ -73,6 +73,9 @@ interface DashboardData {
   }[];
 }
 
+// Chart type labels: what they show, not what geometry they use
+const chartTypes = ["By Amount", "Share of Spending", "By Category Trend"];
+
 export function DashboardContent() {
   const { selectedMonth, setSelectedMonth } = useAppStore();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -120,41 +123,58 @@ export function DashboardContent() {
   if (loading) return <DashboardSkeleton />;
   if (!data) return null;
 
-  const chartTypes = ["Horizontal Bar", "Pie", "Line"];
   const prevChart = () => setChartIndex((i) => (i + 2) % 3);
   const nextChart = () => setChartIndex((i) => (i + 1) % 3);
 
   const currencyEntries = Object.entries(data.totalByCurrency);
   const primaryTotal = currencyEntries[0];
-  const categoriesUsed = new Set(data.totalByCategory.map((c) => c.name)).size;
-  const currenciesUsed = currencyEntries.length;
 
   const chartCurrency = data.defaultCurrency;
-  const chartData = [...data.totalByCategory]
-    .sort((a, b) => b.total - a.total);
+  const chartData = [...data.totalByCategory].sort((a, b) => b.total - a.total);
 
   const totalExpenses = data.totalInDefaultCurrency ?? (primaryTotal ? primaryTotal[1] : 0);
   const totalIncome = data.monthlyIncome ? parseFloat(data.monthlyIncome.amount) : 0;
   const balance = totalIncome - totalExpenses;
   const hasIncome = totalIncome > 0;
 
+  // Balance card top border color: gold if positive, destructive if negative
+  const balanceBorderColor = !hasIncome
+    ? "border-t-primary"
+    : balance >= 0
+    ? "border-t-accent"
+    : "border-t-destructive";
+
+  const tooltipStyle = {
+    borderRadius: "12px",
+    border: "1px solid var(--border)",
+    background: "var(--popover)",
+    color: "var(--popover-foreground)",
+    fontSize: 13,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" description="Your financial overview at a glance.">
+      <PageHeader
+        title="Your Money, This Month"
+        description="A clear picture of where your money went — and what is left."
+      >
         <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
       </PageHeader>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card>
+
+        {/* Spent This Month */}
+        <Card className="border-t-[3px] border-t-primary shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Spent This Month</CardTitle>
             <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {primaryTotal ? (
               <div>
-                <div className="text-lg sm:text-2xl font-bold truncate">
+                <div className="text-[1.4rem] sm:text-[1.75rem] font-normal leading-tight tracking-[-0.02em] tabular-nums font-serif truncate">
                   {data.totalInDefaultCurrency != null
                     ? formatMoney(data.totalInDefaultCurrency, data.defaultCurrency)
                     : formatMoney(primaryTotal[1], primaryTotal[0])}
@@ -162,7 +182,7 @@ export function DashboardContent() {
                 {currencyEntries.length > 1 && (
                   <div className="mt-1 space-y-0.5 hidden sm:block">
                     {currencyEntries.map(([cur, amt]) => (
-                      <div key={cur} className="text-xs text-muted-foreground">
+                      <div key={cur} className="text-xs text-muted-foreground tabular-nums">
                         {formatMoney(amt, cur)}
                       </div>
                     ))}
@@ -170,15 +190,15 @@ export function DashboardContent() {
                 )}
               </div>
             ) : (
-              <div className="text-lg sm:text-2xl font-bold text-muted-foreground">—</div>
+              <div className="text-[1.4rem] sm:text-[1.75rem] font-normal leading-tight font-serif text-muted-foreground">—</div>
             )}
           </CardContent>
         </Card>
 
-        {/* Monthly Income Card */}
-        <Card>
+        {/* Income This Month */}
+        <Card className="border-t-[3px] border-t-primary shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Monthly Income</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Income This Month</CardTitle>
             {!editingIncome && (
               <button
                 onClick={() => setEditingIncome(true)}
@@ -223,9 +243,9 @@ export function DashboardContent() {
               </div>
             ) : (
               <div>
-                <div className="text-lg sm:text-2xl font-bold truncate">
+                <div className="text-[1.4rem] sm:text-[1.75rem] font-normal leading-tight tracking-[-0.02em] tabular-nums font-serif truncate">
                   {hasIncome ? formatMoney(totalIncome, chartCurrency) : (
-                    <span className="text-muted-foreground text-base sm:text-lg">Not set</span>
+                    <span className="text-muted-foreground text-base sm:text-lg font-sans font-normal">No income added yet</span>
                   )}
                 </div>
                 {!hasIncome && (
@@ -233,7 +253,7 @@ export function DashboardContent() {
                     onClick={() => setEditingIncome(true)}
                     className="text-xs text-primary mt-1 hover:underline"
                   >
-                    + Add income
+                    Add your monthly income
                   </button>
                 )}
               </div>
@@ -241,15 +261,15 @@ export function DashboardContent() {
           </CardContent>
         </Card>
 
-        {/* Balance Card */}
-        <Card>
+        {/* Left to Spend */}
+        <Card className={`border-t-[3px] shadow-md ${balanceBorderColor}`}>
           <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Balance</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Left to Spend</CardTitle>
             {hasIncome ? (
               balance >= 0 ? (
-                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500" />
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
               ) : (
-                <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
+                <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
               )
             ) : (
               <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
@@ -258,73 +278,74 @@ export function DashboardContent() {
           <CardContent>
             {hasIncome ? (
               <div>
-                <div className={`text-lg sm:text-2xl font-bold truncate ${balance >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                <div className={`text-[1.4rem] sm:text-[1.75rem] font-normal leading-tight tracking-[-0.02em] tabular-nums font-serif truncate ${balance >= 0 ? "text-primary" : "text-destructive"}`}>
                   {balance >= 0 ? "+" : ""}{formatMoney(Math.abs(balance), chartCurrency)}
                 </div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                  {balance >= 0 ? "saved this month" : "over budget"}
+                  {balance >= 0 ? "ahead of spending" : "over your income"}
                 </p>
               </div>
             ) : (
-              <div className="text-lg sm:text-2xl font-bold text-muted-foreground">—</div>
+              <div className="text-[1.4rem] sm:text-[1.75rem] font-normal leading-tight font-serif text-muted-foreground">—</div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Transactions */}
+        <Card className="border-t-[3px] border-t-primary shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Expenses</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Transactions</CardTitle>
             <Receipt className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg sm:text-2xl font-bold">{data.expenseCount}</div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">this month</p>
+            <div className="text-[1.4rem] sm:text-[1.75rem] font-bold leading-tight tabular-nums">{data.expenseCount}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">logged this month</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Exchange Rate USD ↔ UYU */}
+      {/* Live Exchange Rate */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm sm:text-base">USD → UYU Exchange Rate</CardTitle>
+          <CardTitle className="text-sm sm:text-base">Live Exchange Rate</CardTitle>
           <ArrowRightLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Buy (Compra)</p>
-              <p className="text-lg sm:text-xl font-bold">$U{data.exchangeRate.compra.toFixed(2)}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Buy rate</p>
+              <p className="text-lg sm:text-xl font-bold tabular-nums">$U{data.exchangeRate.compra.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Sell (Venta)</p>
-              <p className="text-lg sm:text-xl font-bold">$U{data.exchangeRate.venta.toFixed(2)}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Sell rate</p>
+              <p className="text-lg sm:text-xl font-bold tabular-nums">$U{data.exchangeRate.venta.toFixed(2)}</p>
             </div>
             <div className="col-span-2 sm:col-span-1">
               {data.totalByCurrency["USD"] ? (
                 <>
                   <p className="text-xs sm:text-sm text-muted-foreground">Your USD in UYU</p>
-                  <p className="text-lg sm:text-xl font-bold">
+                  <p className="text-lg sm:text-xl font-bold tabular-nums">
                     {formatMoney(data.totalByCurrency["USD"] * data.exchangeRate.venta, "UYU")}
                   </p>
                 </>
               ) : data.totalByCurrency["UYU"] ? (
                 <>
                   <p className="text-xs sm:text-sm text-muted-foreground">Your UYU in USD</p>
-                  <p className="text-lg sm:text-xl font-bold">
+                  <p className="text-lg sm:text-xl font-bold tabular-nums">
                     {formatMoney(data.totalByCurrency["UYU"] / data.exchangeRate.compra, "USD")}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Conversion</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">$1 USD = $U{data.exchangeRate.venta.toFixed(2)}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Quick reference</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">$1 USD = $U{data.exchangeRate.venta.toFixed(2)}</p>
                 </>
               )}
             </div>
           </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 sm:mt-3">
             {data.exchangeRate.isDefault
-              ? "Using default rate — live API unavailable."
+              ? "Showing an estimated rate. Live data is temporarily unavailable."
               : data.exchangeRate.fechaActualizacion
                 ? `Updated: ${format(new Date(data.exchangeRate.fechaActualizacion), "MMM d, yyyy HH:mm")}`
                 : "Live rate from dolarapi.com"}
@@ -334,10 +355,11 @@ export function DashboardContent() {
 
       {/* Charts + Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Spending by Category Chart Carousel */}
+
+        {/* Where Your Money Went — Chart Carousel */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm sm:text-base">Spending by Category</CardTitle>
+            <CardTitle className="text-sm sm:text-base">Where Your Money Went</CardTitle>
             <div className="flex items-center gap-0.5 sm:gap-1">
               <button
                 onClick={prevChart}
@@ -346,7 +368,7 @@ export function DashboardContent() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-[10px] sm:text-xs text-muted-foreground w-20 sm:w-24 text-center select-none">
+              <span className="text-[10px] sm:text-xs text-muted-foreground w-24 sm:w-28 text-center select-none">
                 {chartTypes[chartIndex]}
               </span>
               <button
@@ -372,18 +394,19 @@ export function DashboardContent() {
                   ))}
                 </div>
 
+                {/* By Amount — horizontal bar */}
                 {chartIndex === 0 && (
                   <div className="h-[220px] sm:h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 8, top: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <CartesianGrid strokeDasharray="4 2" horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
                         <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={10} />
                         <YAxis type="category" dataKey="name" width={70} fontSize={10} tick={{ fontSize: 10 }} />
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value), chartCurrency)}
-                          contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
+                          contentStyle={tooltipStyle}
                         />
-                        <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                        <Bar dataKey="total" radius={[0, 6, 6, 0]}>
                           {chartData.map((entry, index) => (
                             <Cell key={index} fill={entry.color} />
                           ))}
@@ -393,6 +416,7 @@ export function DashboardContent() {
                   </div>
                 )}
 
+                {/* Share of Spending — pie/donut */}
                 {chartIndex === 1 && (
                   <div className="h-[240px] sm:h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -403,8 +427,8 @@ export function DashboardContent() {
                           nameKey="name"
                           cx="50%"
                           cy="45%"
-                          outerRadius={70}
-                          innerRadius={30}
+                          outerRadius={75}
+                          innerRadius={40}
                         >
                           {chartData.map((entry, index) => (
                             <Cell key={index} fill={entry.color} />
@@ -412,7 +436,7 @@ export function DashboardContent() {
                         </Pie>
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value), chartCurrency)}
-                          contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
+                          contentStyle={tooltipStyle}
                         />
                         <Legend
                           iconType="circle"
@@ -425,22 +449,23 @@ export function DashboardContent() {
                   </div>
                 )}
 
+                {/* By Category Trend — line */}
                 {chartIndex === 2 && (
                   <div className="h-[220px] sm:h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData} margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                        <CartesianGrid strokeDasharray="4 2" stroke="var(--border)" strokeOpacity={0.3} />
                         <XAxis dataKey="name" fontSize={9} tick={{ fontSize: 9 }} angle={-30} textAnchor="end" height={50} />
                         <YAxis tickFormatter={(v) => `$${v}`} fontSize={10} width={45} />
                         <Tooltip
                           formatter={(value) => formatMoney(Number(value), chartCurrency)}
-                          contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
+                          contentStyle={tooltipStyle}
                         />
                         <Line
                           type="monotone"
                           dataKey="total"
-                          strokeWidth={2}
-                          stroke="#6366f1"
+                          strokeWidth={2.5}
+                          stroke="var(--primary)"
                           dot={(props) => {
                             const { cx, cy, index } = props;
                             return (
@@ -449,7 +474,7 @@ export function DashboardContent() {
                                 cx={cx}
                                 cy={cy}
                                 r={4}
-                                fill={chartData[index]?.color ?? "#6366f1"}
+                                fill={chartData[index]?.color ?? "var(--primary)"}
                                 stroke="white"
                                 strokeWidth={2}
                               />
@@ -465,18 +490,18 @@ export function DashboardContent() {
             ) : (
               <EmptyState
                 icon={LayoutDashboard}
-                title="No data yet"
-                description="Add expenses to see your spending breakdown."
+                title="Nothing to chart yet"
+                description="Once you log a few transactions, your spending breakdown will appear here."
                 className="py-6 sm:py-8"
               />
             )}
           </CardContent>
         </Card>
 
-        {/* Recent Expenses */}
+        {/* Latest Transactions */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm sm:text-base">Recent Expenses</CardTitle>
+            <CardTitle className="text-sm sm:text-base">Latest Transactions</CardTitle>
           </CardHeader>
           <CardContent>
             {data.recentExpenses.length > 0 ? (
@@ -495,7 +520,7 @@ export function DashboardContent() {
                         </span>
                       </div>
                     </div>
-                    <span className="text-xs sm:text-sm font-semibold ml-3 sm:ml-4 shrink-0">
+                    <span className="text-xs sm:text-sm font-semibold ml-3 sm:ml-4 shrink-0 tabular-nums">
                       {formatMoney(expense.amount, expense.currency)}
                     </span>
                   </div>
@@ -504,8 +529,8 @@ export function DashboardContent() {
             ) : (
               <EmptyState
                 icon={Receipt}
-                title="No expenses yet"
-                description="Start tracking your spending."
+                title="No transactions logged"
+                description="Add your first transaction and it will show up here instantly."
                 className="py-6 sm:py-8"
               />
             )}
@@ -513,17 +538,17 @@ export function DashboardContent() {
         </Card>
       </div>
 
-      {/* Balance History */}
+      {/* Income vs. Spending Over Time */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm sm:text-base">Balance History</CardTitle>
+          <CardTitle className="text-sm sm:text-base">Income vs. Spending Over Time</CardTitle>
         </CardHeader>
         <CardContent>
           {data.balanceHistory.some((m) => m.expenses > 0 || m.income > 0) ? (
             <div className="h-[200px] sm:h-[260px] -ml-2 sm:ml-0">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={data.balanceHistory} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <CartesianGrid strokeDasharray="4 2" vertical={false} stroke="var(--border)" strokeOpacity={0.3} />
                   <XAxis dataKey="month" fontSize={10} />
                   <YAxis tickFormatter={(v) => `$${v}`} fontSize={10} width={40} />
                   <Tooltip
@@ -531,20 +556,20 @@ export function DashboardContent() {
                       formatMoney(Number(value), chartCurrency),
                       name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Balance",
                     ]}
-                    contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 }}
+                    contentStyle={tooltipStyle}
                   />
-                  <Bar dataKey="income" name="income" fill="#10b981" opacity={0.85} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expenses" name="expenses" fill="#f43f5e" opacity={0.85} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="income" name="income" fill="#3EC9A7" opacity={0.85} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expenses" name="expenses" fill="#E05C4B" opacity={0.85} radius={[4, 4, 0, 0]} />
                   <Line
                     type="monotone"
                     dataKey="balance"
                     name="balance"
-                    stroke="#6366f1"
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: "#6366f1", stroke: "white", strokeWidth: 2 }}
+                    stroke="#D4A853"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: "#D4A853", stroke: "white", strokeWidth: 2 }}
                     activeDot={{ r: 5 }}
                   />
-                  <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" />
+                  <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeDasharray="4 2" strokeOpacity={0.5} />
                   <Legend
                     iconSize={6}
                     formatter={(value) => (
@@ -559,18 +584,18 @@ export function DashboardContent() {
           ) : (
             <EmptyState
               icon={TrendingUp}
-              title="No history yet"
-              description="Set your monthly income and add expenses to see the balance history."
+              title="Your history starts here"
+              description="Add your income for this month and start logging transactions — your trends will build automatically."
               className="py-6 sm:py-8"
             />
           )}
         </CardContent>
       </Card>
 
-      {/* Recurring Expenses Summary */}
+      {/* Fixed Monthly Costs */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm sm:text-base">Recurring Expenses</CardTitle>
+          <CardTitle className="text-sm sm:text-base">Fixed Monthly Costs</CardTitle>
         </CardHeader>
         <CardContent>
           {data.recurringExpenses.length > 0 ? (
@@ -580,13 +605,13 @@ export function DashboardContent() {
                 .map((expense) => (
                   <div
                     key={expense.id}
-                    className="flex items-center justify-between rounded-lg border border-border p-2.5 sm:p-3"
+                    className="flex items-center justify-between rounded-xl border-t-[3px] border-t-primary border border-border shadow-sm p-2.5 sm:p-3 bg-card"
                   >
                     <div className="min-w-0">
                       <p className="text-xs sm:text-sm font-medium truncate">{expense.description}</p>
                       <CategoryBadge name={expense.category.name} color={expense.category.color} />
                     </div>
-                    <span className="text-xs sm:text-sm font-semibold ml-2 sm:ml-3 shrink-0">
+                    <span className="text-xs sm:text-sm font-semibold ml-2 sm:ml-3 shrink-0 tabular-nums">
                       {formatMoney(expense.amount, expense.currency)}
                     </span>
                   </div>
@@ -595,8 +620,8 @@ export function DashboardContent() {
           ) : (
             <EmptyState
               icon={Receipt}
-              title="No recurring expenses"
-              description="Set up recurring expenses to track fixed monthly costs."
+              title="No fixed costs set up"
+              description="Add a recurring cost — like rent, subscriptions, or a gym membership — and it will always be visible here."
               className="py-8"
             />
           )}

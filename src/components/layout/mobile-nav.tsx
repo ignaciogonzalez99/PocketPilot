@@ -36,7 +36,14 @@ export function MobileNav() {
               isActive ? "text-primary" : "text-muted-foreground"
             )}
           >
-            <item.icon className="h-5 w-5" />
+            <span
+              className={cn(
+                "flex items-center justify-center rounded-full w-8 h-7 transition-colors",
+                isActive ? "bg-primary/12" : "bg-transparent"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+            </span>
             {item.label}
           </Link>
         );

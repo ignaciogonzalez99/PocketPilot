@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
+  return <div className={cn("rounded-md bg-muted", className)} style={{ animation: "pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />;
 }
 
 export function CardSkeleton() {
