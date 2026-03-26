@@ -160,3 +160,26 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── Safe-area helpers ─────────────────────────────────────────────────────
+   These use CSS environment variables so the browser fills in the real value
+   on notched/dynamic-island devices. They're no-ops on devices without a
+   notch (env() returns 0 when the variable is absent).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Push content below the status bar / notch */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Extra top padding: a fixed pixel value PLUS the safe-area inset.
+   Used by the MobileHeader so its visual height stays 96 px while the
+   entire element grows to clear the notch. */
+.pt-safe-header {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Push content above the home indicator */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

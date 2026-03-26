@@ -3,6 +3,7 @@ import { DM_Serif_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { MobileHeader } from "@/components/layout/mobile-header";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -60,8 +61,22 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <Sidebar />
+          <MobileHeader />
           <main className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-6xl px-4 py-6 pb-20 md:px-8 md:pb-6">
+            {/*
+             * pt uses an inline style rather than a Tailwind arbitrary value
+             * because env(safe-area-inset-top) must be resolved at runtime.
+             * 96px  = MobileHeader visual height
+             * 1.5rem = breathing room below the header
+             * env()  = notch / dynamic island height (0 on non-notched devices)
+             * md: overrides both values back to normal desktop padding.
+             */}
+            <div
+              className="mx-auto max-w-6xl px-4 pb-20 md:px-8 md:pt-6 md:pb-6"
+              style={{
+                paddingTop: "calc(96px + 1.5rem + env(safe-area-inset-top))",
+              }}
+            >
               {children}
             </div>
           </main>
