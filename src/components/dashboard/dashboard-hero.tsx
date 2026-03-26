@@ -6,10 +6,7 @@ interface DashboardHeroProps {
 
 export function DashboardHero({ children }: DashboardHeroProps) {
   return (
-    <div className="relative -mx-4 md:-mx-8 mb-6 overflow-hidden rounded-b-2xl shadow-lg">
-      {/* Color bleed strip — bridges the sidebar header zone to the banner */}
-      <div className="absolute -top-6 left-0 right-0 h-6 bg-[#0E1512]" aria-hidden="true" />
-
+    <div className="relative -mx-4 md:-mx-8 -mt-6 mb-6 overflow-hidden rounded-b-2xl shadow-lg">
       {/* Banner image */}
       <div className="h-[200px] sm:h-[240px] md:h-[260px]">
         <Image
