@@ -80,6 +80,7 @@ export function DashboardContent() {
   const { selectedMonth, setSelectedMonth } = useAppStore();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [chartIndex, setChartIndex] = useState(0);
   const [editingIncome, setEditingIncome] = useState(false);
   const [incomeInput, setIncomeInput] = useState("");
@@ -87,10 +88,13 @@ export function DashboardContent() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const result = await getDashboardData(selectedMonth.toISOString());
       setData(result);
       setIncomeInput(result.monthlyIncome?.amount ?? "");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -121,6 +125,7 @@ export function DashboardContent() {
   };
 
   if (loading) return <DashboardSkeleton />;
+  if (error) return <div className="p-8 text-destructive text-sm font-mono">Error: {error}</div>;
   if (!data) return null;
 
   const prevChart = () => setChartIndex((i) => (i + 2) % 3);
