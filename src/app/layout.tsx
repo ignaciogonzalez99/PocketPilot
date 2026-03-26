@@ -61,7 +61,7 @@ export default function RootLayout({
         <ThemeProvider>
           <Sidebar />
           <main className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-6xl px-4 py-6 pb-20 md:px-8 md:pb-6">
+            <div className="mx-auto max-w-6xl px-4 pt-0 pb-20 md:px-8 md:pb-6">
               {children}
             </div>
           </main>
