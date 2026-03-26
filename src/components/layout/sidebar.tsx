@@ -26,15 +26,19 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex w-64 flex-col border-r border-border bg-sidebar">
-      <div className="flex items-center gap-2.5 px-6 py-5 border-b border-border">
+      <div className="relative overflow-hidden h-[160px] w-full">
         <Image
-          src="/icon-192.png"
-          alt="PocketPilot"
-          width={32}
-          height={32}
-          className="rounded-lg shrink-0"
+          src="/banner.png"
+          alt="PocketPilot banner"
+          fill
+          priority
+          className="object-cover object-center"
         />
-        <span className="text-lg font-normal tracking-tight font-serif">PocketPilot</span>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 px-4 pb-3 flex flex-col">
+          <span className="font-serif text-xl font-normal text-white leading-tight">PocketPilot</span>
+          <span className="text-[10px] text-white/70 font-sans">Your money, wherever it is. Clear.</span>
+        </div>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map((item) => {
